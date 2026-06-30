@@ -1,0 +1,4 @@
+对话模板里填写
+{"enable_thinking":true,"preserve_thinking":true}
+开启思考，开启保留思考能力
+false则为关闭
