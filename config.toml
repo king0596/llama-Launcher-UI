@@ -1,5 +1,5 @@
 llama_server_path = 'D:/llama-truboquant/build/bin/Release/llama-server.exe'
-model = 'D:/LLM Model File\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-Q4_K_M.gguf'
+model = 'D:/LLM Model File/Qwen3.6-27B-uncensored-heretic-v2-Native-MTP-Preserved-Q4_K_M.gguf'
 host = '0.0.0.0'
 port = 8080
 ctx_size = 128000
@@ -76,3 +76,5 @@ spec_type = 'draft-mtp'
 n_gpu_layers_draft = ''
 model_draft = ''
 spec_draft_p_min = ''
+window_geometry = '1185x852+74+81'
+model_root = 'D:/LLM Model File'
