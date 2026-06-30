@@ -151,7 +151,28 @@ class ViewMixin:
         self.build_advanced_panel(advanced)
 
     def build_runtime_view(self, parent):
-        self.build_status_panel(parent)
+        C = self.COLORS
+        # 运行视图：左侧监控侧边栏 + 右侧状态/控制台
+        parent.grid_columnconfigure(0, weight=0, minsize=300)
+        parent.grid_columnconfigure(1, weight=3, minsize=400)
+        parent.grid_rowconfigure(0, weight=1)
+
+        sidebar = ctk.CTkScrollableFrame(
+            parent, fg_color="transparent",
+            scrollbar_fg_color=C["tab_bg"],
+            scrollbar_button_color=C["card_border"],
+            scrollbar_button_hover_color=C["text_hint"],
+        )
+        sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        sidebar.grid_columnconfigure(0, weight=1)
+
+        main = ctk.CTkFrame(parent, fg_color="transparent")
+        main.grid(row=0, column=1, sticky="nsew")
+        main.grid_columnconfigure(0, weight=1)
+        main.grid_rowconfigure(1, weight=1)
+
+        self.build_monitor_sidebar(sidebar)
+        self.build_status_panel(main)
 
     def build_dashboard(self, parent):
         C = self.COLORS

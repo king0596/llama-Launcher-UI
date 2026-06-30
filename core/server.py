@@ -116,6 +116,7 @@ class ServerMixin:
             self.stop_btn.configure(state=tk.NORMAL)
             self.root.after(3000, self.check_server_ready)
             self.root.after(300, self.update_log_display)
+            self.start_monitoring()
         except Exception as e:
             self.set_server_status("启动失败")
             self.show_config_view()
@@ -198,6 +199,7 @@ class ServerMixin:
         if self.process is None:
             return
         self.running = False
+        self.stop_monitoring()
         try:
             self.process.terminate()
             self.process.wait(timeout=5)

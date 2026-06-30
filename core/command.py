@@ -165,6 +165,10 @@ class CommandMixin:
             import shlex
             cmd.extend(shlex.split(custom))
 
+        # 确保开启 /metrics 端点，用于 token 统计看板（用户未显式指定时自动追加）
+        if "--metrics" not in cmd:
+            cmd.append("--metrics")
+
         return cmd
 
     def build_launch_snapshot(self, cmd):

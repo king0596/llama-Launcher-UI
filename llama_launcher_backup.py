@@ -14,12 +14,13 @@ from ui.views import ViewMixin
 from core.server import ServerMixin
 from core.command import CommandMixin
 from core.config_manager import ConfigMixin
+from core.monitor import MonitorMixin
 
 
 args = parse_args()
 
 
-class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigMixin):
+class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigMixin, MonitorMixin):
     """Llama Server 启动器主类，通过 mixin 组合各功能模块。"""
 
     COLORS = COLORS
@@ -47,6 +48,7 @@ class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigM
         self.model_root = self.config.get("model_root", self.model_root)
         self.scan_models()
         self.create_variables()
+        self.init_monitor()
         self.build_ui()
         self.load_config_to_ui()
         self.apply_cli_args()
@@ -111,6 +113,7 @@ class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigM
             self.write_config_file()
         except Exception:
             pass
+        self.stop_monitoring()
         self.stop_server()
         self.root.destroy()
 
