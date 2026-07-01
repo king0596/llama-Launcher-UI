@@ -13,44 +13,62 @@ class UIWidgetMixin:
     COLORS = COLORS
 
     # ---- 通用卡片 ----
-    def card(self, parent, title=None):
+    def card(self, parent, title=None, right_label=None):
         C = self.COLORS
         frame = ctk.CTkFrame(
-            parent, fg_color=C["card"], corner_radius=10,
+            parent, fg_color=C["card"], corner_radius=8,
             border_width=1, border_color=C["card_border"],
         )
         frame.grid_columnconfigure(0, weight=1)
         if title:
-            hl = ctk.CTkLabel(
-                frame, text=title,
-                font=("Microsoft YaHei UI", 13, "bold"),
-                text_color=C["text_primary"],
-            )
-            hl.grid(row=0, column=0, sticky="w", padx=14, pady=(10, 0))
-            ctk.CTkFrame(frame, height=1, fg_color=C["card_border"]).grid(
-                row=1, column=0, sticky="ew", padx=14, pady=6
+            if right_label is not None:
+                # 标题行用 frame 包裹，左侧标题 + 右侧标签
+                title_row = ctk.CTkFrame(frame, fg_color="transparent")
+                title_row.grid(row=0, column=0, sticky="ew", padx=14, pady=(9, 0))
+                title_row.grid_columnconfigure(0, weight=1)
+                ctk.CTkLabel(
+                    title_row, text=title,
+                    font=("Microsoft YaHei UI", 12, "bold"),
+                    text_color=C["text_primary"], anchor="w",
+                ).grid(row=0, column=0, sticky="w")
+                ctk.CTkLabel(
+                    title_row, textvariable=right_label if hasattr(right_label, "set") else None,
+                    text=right_label if not hasattr(right_label, "set") else "",
+                    font=("Consolas", 11, "bold"),
+                    text_color=C["primary"], anchor="e",
+                ).grid(row=0, column=1, sticky="e")
+            else:
+                hl = ctk.CTkLabel(
+                    frame, text=title,
+                    font=("Microsoft YaHei UI", 12, "bold"),
+                    text_color=C["text_primary"],
+                )
+                hl.grid(row=0, column=0, sticky="w", padx=14, pady=(9, 0))
+            ctk.CTkFrame(frame, height=1, fg_color=C["divider"]).grid(
+                row=1, column=0, sticky="ew", padx=14, pady=(6, 5)
             )
         return frame
 
     # ---- 基础组件构建器 ----
     def _input_style(self):
         C = self.COLORS
-        return {"height": 30, "corner_radius": 7, "border_width": 1,
-                "border_color": C["input_border"], "fg_color": C["card"],
+        return {"height": 29, "corner_radius": 6, "border_width": 1,
+                "border_color": C["input_border"], "fg_color": C["input_bg"],
                 "text_color": C["text_primary"], "font": ("Consolas", 11)}
 
     def _combo_style(self):
         C = self.COLORS
-        return {"height": 30, "corner_radius": 7, "border_width": 1,
-                "border_color": C["input_border"], "button_color": C["tab_bg"],
-                "button_hover_color": C["card_border"], "text_color": C["text_primary"],
+        return {"height": 29, "corner_radius": 6, "border_width": 1,
+                "border_color": C["input_border"], "fg_color": C["input_bg"],
+                "button_color": C["input_bg"], "button_hover_color": C["tab_bg"],
+                "text_color": C["text_primary"],
                 "font": ("Microsoft YaHei UI", 11)}
 
     def add_label(self, parent, row, text, tooltip=""):
         C = self.COLORS
         label = ctk.CTkLabel(
             parent, text=text, text_color=C["text_secondary"],
-            font=("Microsoft YaHei UI", 11), anchor="w", width=130,
+            font=("Microsoft YaHei UI", 11), anchor="w", width=124,
         )
         label.grid(row=row, column=0, sticky="w", padx=(14, 8), pady=5)
         if tooltip:
@@ -142,7 +160,7 @@ class UIWidgetMixin:
         # 标签 + 开关分开放置，避免拉伸变形
         lbl = ctk.CTkLabel(
             parent, text=label, text_color=C["text_secondary"],
-            font=("Microsoft YaHei UI", 11), anchor="w", width=130,
+            font=("Microsoft YaHei UI", 11), anchor="w", width=124,
         )
         lbl.grid(row=row, column=0, sticky="w", padx=(14, 8), pady=5)
 
@@ -163,14 +181,15 @@ class UIWidgetMixin:
             parent, fg_color=C["card"], corner_radius=8,
             border_width=1, border_color=C["card_border"],
         )
-        box.grid(row=0, column=col, sticky="ew", padx=5, pady=10)
+        box.grid(row=0, column=col, sticky="nsew", padx=4, pady=9)
+        box.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             box, text=label, text_color=C["text_hint"],
             font=("Microsoft YaHei UI", 10),
         ).pack(anchor="w", padx=8, pady=(6, 0))
         ctk.CTkEntry(
-            box, textvariable=var, height=28, corner_radius=6,
-            border_width=0, fg_color=C["tab_bg"],
+            box, textvariable=var, height=27, corner_radius=6,
+            border_width=0, fg_color=C["input_bg"],
             text_color=C["text_primary"], font=("Consolas", 11),
         ).pack(fill=tk.X, padx=6, pady=(2, 6))
 
@@ -180,11 +199,11 @@ class UIWidgetMixin:
     # 累积导致窗口拖动严重卡顿。内容在 minsize(1100,700) 内无需滚动。
     def make_scroll_frame(self, parent):
         frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         # 3列：标签 | 输入 | 按钮（可选）
-        frame.grid_columnconfigure(0, weight=0, minsize=140)
-        frame.grid_columnconfigure(1, weight=1, minsize=120)
-        frame.grid_columnconfigure(2, weight=0, minsize=70)
+        frame.grid_columnconfigure(0, weight=0, minsize=132)
+        frame.grid_columnconfigure(1, weight=1, minsize=104)
+        frame.grid_columnconfigure(2, weight=0, minsize=64)
         return frame
 
     def row_col(self, index):
@@ -197,7 +216,7 @@ class UIWidgetMixin:
             parent, text=text, text_color=C["text_secondary"],
             font=("Microsoft YaHei UI", 12, "bold"),
         ).grid(row=row, column=0, columnspan=3, sticky="w", padx=14, pady=(6, 2))
-        ctk.CTkFrame(parent, height=1, fg_color=C["card_border"]).grid(
+        ctk.CTkFrame(parent, height=1, fg_color=C["divider"]).grid(
             row=row + 1, column=0, columnspan=3, sticky="ew", padx=14, pady=2
         )
 

@@ -289,16 +289,17 @@ class CommandMixin:
         dialog.grid_rowconfigure(1, weight=1)
 
         C = self.COLORS
+        dialog.configure(fg_color=C["bg"])
         ctk.CTkLabel(
             dialog, text="启动参数快照",
-            font=("Microsoft YaHei UI", 18, "bold"),
+            font=("Microsoft YaHei UI", 16, "bold"),
             text_color=C["text_primary"],
         ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 8))
 
         text = ctk.CTkTextbox(
             dialog, wrap=tk.WORD, font=("Consolas", 11),
             fg_color=C["dark_bg"], text_color=C["dark_text"],
-            corner_radius=10,
+            corner_radius=8,
         )
         text.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 10))
         text.insert(tk.END, snapshot)
@@ -307,13 +308,13 @@ class CommandMixin:
         actions = ctk.CTkFrame(dialog, fg_color="transparent")
         actions.grid(row=2, column=0, sticky="e", padx=16, pady=(0, 14))
         ctk.CTkButton(
-            actions, text="复制", width=74, height=32, corner_radius=9,
+            actions, text="复制", width=74, height=32, corner_radius=8,
             command=lambda: self.copy_text(snapshot),
             fg_color=C["tab_bg"], hover_color=C["card_border"],
             text_color=C["text_primary"], font=("Microsoft YaHei UI", 11),
         ).pack(side=tk.LEFT, padx=(0, 8))
         ctk.CTkButton(
-            actions, text="关闭", width=74, height=32, corner_radius=9,
+            actions, text="关闭", width=74, height=32, corner_radius=8,
             command=dialog.destroy,
             fg_color=C["primary"], hover_color=C["primary_hover"],
             font=("Microsoft YaHei UI", 11),

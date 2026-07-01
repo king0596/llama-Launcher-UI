@@ -63,11 +63,6 @@ class MonitorMixin:
         self._token_total_prompt = 0
         self._token_total_predicted = 0
         self._slot_prev = {}
-        self._last_token_time = 0.0
-        self._last_token_prompt = 0
-        self._last_token_predicted = 0
-        self._token_rate_in = 0.0
-        self._token_rate_out = 0.0
         # /metrics 累计计数器相关
         self._metric_raw_prompt = -1   # 最近一次从 /metrics 读到的原始累计值
         self._metric_raw_predicted = -1
@@ -248,26 +243,9 @@ class MonitorMixin:
         # 显示值 = 累计值 - 重置偏移
         disp_in = max(0, prompt_total - self._metric_offset_prompt)
         disp_out = max(0, predicted_total - self._metric_offset_predicted)
-        # 速率
-        now = time.time()
-        if self._last_token_time:
-            dt = now - self._last_token_time
-            if dt > 0:
-                dp = disp_in - self._last_token_prompt
-                do = disp_out - self._last_token_predicted
-                if dp >= 0:
-                    self._token_rate_in = dp / dt
-                if do >= 0:
-                    self._token_rate_out = do / dt
-        self._last_token_time = now
-        self._last_token_prompt = disp_in
-        self._last_token_predicted = disp_out
         self.token_in_var.set(f"{disp_in:,}")
         self.token_out_var.set(f"{disp_out:,}")
         self.token_total_var.set(f"{disp_in + disp_out:,}")
-        self.token_rate_var.set(
-            f"↑{self._token_rate_in:.1f} / ↓{self._token_rate_out:.1f} t/s"
-        )
 
     def _apply_tokens(self, data):
         """/slots 回退路径：累积各槽位统计，处理槽位复用重置。"""
@@ -288,26 +266,11 @@ class MonitorMixin:
             self._slot_prev[sid] = (p, o)
             cur_prompt = max(cur_prompt, p)
             cur_predicted = max(cur_predicted, o)
-        # 速率
-        now = time.time()
-        if self._last_token_time:
-            dt = now - self._last_token_time
-            if dt > 0:
-                dp = cur_prompt - self._last_token_prompt
-                do = cur_predicted - self._last_token_predicted
-                if dp >= 0:
-                    self._token_rate_in = dp / dt
-                if do >= 0:
-                    self._token_rate_out = do / dt
-        self._last_token_time = now
-        self._last_token_prompt = cur_prompt
-        self._last_token_predicted = cur_predicted
         total_in = self._token_total_prompt + cur_prompt
         total_out = self._token_total_predicted + cur_predicted
         self.token_in_var.set(f"{total_in:,}")
         self.token_out_var.set(f"{total_out:,}")
         self.token_total_var.set(f"{total_in + total_out:,}")
-        self.token_rate_var.set(f"↑{self._token_rate_in:.1f} / ↓{self._token_rate_out:.1f} t/s")
 
     def reset_token_stats(self):
         # /metrics 模式：以当前累计值为新基线，显示归零
@@ -319,15 +282,9 @@ class MonitorMixin:
         self._token_total_prompt = 0
         self._token_total_predicted = 0
         self._slot_prev = {}
-        self._last_token_time = 0.0
-        self._last_token_prompt = 0
-        self._last_token_predicted = 0
-        self._token_rate_in = 0.0
-        self._token_rate_out = 0.0
         self.token_in_var.set("0")
         self.token_out_var.set("0")
         self.token_total_var.set("0")
-        self.token_rate_var.set("0 / 0")
 
     # ---- 异常捕获 ----
     def _scan_exceptions(self):
@@ -411,7 +368,8 @@ class MonitorMixin:
         self.hw_gpu_temp_lbl.grid(row=8, column=1, sticky="e", padx=2, pady=(4, 0))
 
         # ---- token 统计卡片 ----
-        tk_card = self.card(parent, "📊 Token 统计")
+        self.token_total_var = tk.StringVar(value="0")
+        tk_card = self.card(parent, "📊 Token 统计", right_label=self.token_total_var)
         tk_card.grid(row=1, column=0, sticky="ew", pady=6)
         tk_body = ctk.CTkFrame(tk_card, fg_color="transparent")
         tk_body.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 10))
@@ -419,12 +377,8 @@ class MonitorMixin:
 
         self.token_in_var = tk.StringVar(value="0")
         self.token_out_var = tk.StringVar(value="0")
-        self.token_total_var = tk.StringVar(value="0")
-        self.token_rate_var = tk.StringVar(value="0 / 0")
         self._stat_row(tk_body, 0, "📥 输入 tokens", self.token_in_var)
         self._stat_row(tk_body, 1, "📤 输出 tokens", self.token_out_var)
-        self._stat_row(tk_body, 2, "∑ 总计", self.token_total_var)
-        self._stat_row(tk_body, 3, "⚡ 实时速率", self.token_rate_var)
 
         ctk.CTkButton(
             tk_body, text="重置统计", width=80, height=26, corner_radius=6,

@@ -240,6 +240,11 @@ class ServerMixin:
         self.log_text.delete(1.0, tk.END)
         self.log_text.configure(state=tk.DISABLED)
 
+    def scroll_log_to_bottom(self):
+        if not hasattr(self, "log_text"):
+            return
+        self.log_text.see(tk.END)
+
     def check_server_ready(self):
         import threading
         import socket

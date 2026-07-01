@@ -40,8 +40,8 @@ class ViewMixin:
 
         # ---- 配置视图（左右分栏）----
         self.config_view = ctk.CTkFrame(content, fg_color="transparent")
-        self.config_view.grid_columnconfigure(0, weight=3, minsize=420)
-        self.config_view.grid_columnconfigure(1, weight=2, minsize=300)
+        self.config_view.grid_columnconfigure(0, weight=1, minsize=560)
+        self.config_view.grid_columnconfigure(1, weight=0, minsize=460)
         self.config_view.grid_rowconfigure(0, weight=1)
 
         # ---- 运行视图（懒加载，避免启动时创建大量监控/日志控件）----
@@ -56,16 +56,16 @@ class ViewMixin:
     # ---- 工具栏 ----
     def build_toolbar(self, parent):
         C = self.COLORS
-        bar = ctk.CTkFrame(parent, height=56, fg_color=C["card"])
-        bar.grid(row=0, column=0, sticky="ew", pady=(6, 8))
+        bar = ctk.CTkFrame(parent, height=52, fg_color=C["card"], corner_radius=0)
+        bar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         bar.grid_columnconfigure(2, weight=1)
 
         # 左侧标题
         ctk.CTkLabel(
             bar, text="Llama Launcher",
-            font=("Microsoft YaHei UI", 16, "bold"),
+            font=("Microsoft YaHei UI", 15, "bold"),
             text_color=C["text_primary"],
-        ).grid(row=0, column=0, sticky="w", padx=(18, 0), pady=8)
+        ).grid(row=0, column=0, sticky="w", padx=(16, 0), pady=8)
 
         # 中间模型选择 + 端口
         mid = ctk.CTkFrame(bar, fg_color="transparent")
@@ -75,19 +75,21 @@ class ViewMixin:
         self.model_combo = ctk.CTkComboBox(
             mid, variable=self.model_combo_var,
             values=self.models or ["未扫描到模型"],
-            command=self.on_model_select, height=32, corner_radius=8,
-            border_color=C["input_border"], button_color=C["tab_bg"],
-            button_hover_color=C["card_border"], text_color=C["text_primary"],
+            command=self.on_model_select, height=30, corner_radius=6,
+            border_width=0, fg_color=C["input_bg"],
+            button_color=C["input_bg"], button_hover_color=C["tab_bg"],
+            text_color=C["text_primary"],
             font=("Microsoft YaHei UI", 11),
         )
         self.model_combo.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-        port_lbl = ctk.CTkLabel(mid, text="端口:", font=("Microsoft YaHei UI", 11), text_color=C["text_secondary"])
-        port_lbl.grid(row=0, column=1, sticky="e", padx=(0, 4))
+        port_lbl = ctk.CTkLabel(mid, text="端口", font=("Microsoft YaHei UI", 11), text_color=C["text_secondary"])
+        port_lbl.grid(row=0, column=1, sticky="e", padx=(0, 5))
         self.port_entry = ctk.CTkEntry(
-            mid, textvariable=self.port_var, width=72, height=30,
-            corner_radius=8, placeholder_text="8080",
-            border_color=C["input_border"], font=("Consolas", 11),
+            mid, textvariable=self.port_var, width=68, height=30,
+            corner_radius=6, placeholder_text="8080",
+            border_width=0, fg_color=C["input_bg"],
+            font=("Consolas", 11),
         )
         self.port_entry.grid(row=0, column=2)
 
@@ -118,8 +120,8 @@ class ViewMixin:
 
         ctk.CTkButton(
             acts, text="🌐 WebUI", width=80, height=34, corner_radius=8,
-            command=self.open_webui, fg_color=C["tab_bg"], hover_color=C["card_border"],
-            text_color=C["text_primary"], font=("Microsoft YaHei UI", 12),
+            command=self.open_webui, fg_color=C["success"], hover_color="#16a34a",
+            text_color="#ffffff", font=("Microsoft YaHei UI", 12),
         ).grid(row=0, column=3, padx=3)
 
     def show_config_view(self):
@@ -146,12 +148,14 @@ class ViewMixin:
         sidebar = ctk.CTkFrame(parent, fg_color="transparent")
         sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         sidebar.grid_columnconfigure(0, weight=1)
+        sidebar.grid_rowconfigure(1, weight=1)
 
         # 右侧高级参数
-        advanced = ctk.CTkFrame(parent, fg_color="transparent")
+        advanced = ctk.CTkFrame(parent, fg_color="transparent", width=460)
         advanced.grid(row=0, column=1, sticky="nsew")
         advanced.grid_columnconfigure(0, weight=1)
         advanced.grid_rowconfigure(0, weight=1)
+        advanced.grid_propagate(False)
 
         self.build_dashboard(sidebar)
         self.build_config_preview(sidebar)
@@ -195,6 +199,7 @@ class ViewMixin:
         metrics.grid(row=row, column=0, columnspan=3, sticky="ew", padx=12, pady=(8, 12))
         for col in range(4):
             metrics.grid_columnconfigure(col, weight=1)
+        metrics.grid_rowconfigure(0, weight=1)
         self.add_metric(metrics, 0, "📄 上下文", self.ctx_size_var)
         self.add_metric(metrics, 1, "🎮 GPU层", self.n_gpu_layers_var)
         self.add_metric(metrics, 2, "📦 批处理", self.batch_size_var)
@@ -226,31 +231,70 @@ class ViewMixin:
     def build_advanced_panel(self, parent):
         C = self.COLORS
         panel = self.card(parent, "高级参数")
-        panel.grid(row=0, column=0, sticky="nsew")
+        panel.grid(row=0, column=0, sticky="nsew", pady=(8, 8))
         panel.grid_columnconfigure(0, weight=1)
-        panel.grid_rowconfigure(1, weight=1)
+        panel.grid_rowconfigure(2, weight=1)
 
-        tabs = ctk.CTkTabview(
-            panel,
-            height=520,
-            fg_color=C["card"], border_width=1, border_color=C["card_border"],
-            segmented_button_fg_color=C["tab_bg"],
-            segmented_button_selected_color=C["primary"],
-            segmented_button_selected_hover_color=C["primary_hover"],
-        )
-        for name in ["采样", "GPU / MoE", "投机解码", "服务与工具", "自定义"]:
-            tabs.add(name)
-            tabs.tab(name).grid_columnconfigure(0, weight=1)
-            tabs.tab(name).grid_rowconfigure(0, weight=1)
+        tab_names = ["采样", "GPU / MoE", "投机解码", "服务与工具", "自定义"]
 
-        tabs.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
-        tabs.grid_propagate(False)
-        self.advanced_tabs = tabs
-        self.fill_sampling_tab(tabs.tab("采样"))
-        self.fill_gpu_tab(tabs.tab("GPU / MoE"))
-        self.fill_spec_tab(tabs.tab("投机解码"))
-        self.fill_service_tab(tabs.tab("服务与工具"))
-        self.fill_custom_tab(tabs.tab("自定义"))
+        # ---- 自定义 Tab 按钮栏（独立按钮，可控选中/未选中文字色）----
+        tab_bar = ctk.CTkFrame(panel, fg_color=C["input_bg"], corner_radius=8)
+        tab_bar.grid(row=1, column=0, sticky="ew", padx=10, pady=(5, 4))
+        for i in range(len(tab_names)):
+            tab_bar.grid_columnconfigure(i, weight=1)
+
+        # ---- 内容区容器 ----
+        content_container = ctk.CTkFrame(panel, fg_color="transparent")
+        content_container.grid(row=2, column=0, sticky="nsew", padx=10, pady=(3, 10))
+        content_container.grid_columnconfigure(0, weight=1)
+        content_container.grid_rowconfigure(0, weight=1)
+
+        # 创建各 Tab 的内容帧
+        self._adv_tab_frames = {}
+        for name in tab_names:
+            frame = ctk.CTkFrame(content_container, fg_color="transparent")
+            frame.grid_columnconfigure(0, weight=1)
+            frame.grid_rowconfigure(0, weight=1)
+            self._adv_tab_frames[name] = frame
+
+        # 先填充所有 Tab 内容
+        self.fill_sampling_tab(self._adv_tab_frames["采样"])
+        self.fill_gpu_tab(self._adv_tab_frames["GPU / MoE"])
+        self.fill_spec_tab(self._adv_tab_frames["投机解码"])
+        self.fill_service_tab(self._adv_tab_frames["服务与工具"])
+        self.fill_custom_tab(self._adv_tab_frames["自定义"])
+
+        # 创建按钮并定义切换逻辑
+        self._adv_tab_buttons = {}
+        self._adv_current = tab_names[0]
+
+        def _switch_tab(name):
+            self._adv_current = name
+            for n, btn in self._adv_tab_buttons.items():
+                if n == name:
+                    btn.configure(fg_color=C["primary"], hover_color=C["primary_hover"],
+                                  text_color="#ffffff")
+                else:
+                    btn.configure(fg_color=C["input_bg"], hover_color=C["tab_bg"],
+                                  text_color=C["text_primary"])
+            for n in tab_names:
+                self._adv_tab_frames[n].grid_remove()
+            self._adv_tab_frames[name].grid(row=0, column=0, sticky="nsew")
+
+        for i, name in enumerate(tab_names):
+            btn = ctk.CTkButton(
+                tab_bar, text=name, height=28, corner_radius=6,
+                fg_color=C["primary"] if i == 0 else C["input_bg"],
+                hover_color=C["primary_hover"] if i == 0 else C["tab_bg"],
+                text_color="#ffffff" if i == 0 else C["text_primary"],
+                font=("Microsoft YaHei UI", 10, "bold"),
+                command=lambda n=name: _switch_tab(n),
+            )
+            btn.grid(row=0, column=i, sticky="ew", padx=2, pady=3)
+            self._adv_tab_buttons[name] = btn
+
+        # 默认只显示第一个 Tab
+        _switch_tab(tab_names[0])
 
     def build_status_panel(self, parent):
         C = self.COLORS
@@ -347,6 +391,13 @@ class ViewMixin:
             command=self.clear_log, fg_color=C["tab_bg"], hover_color=C["card_border"],
             text_color=C["text_primary"], font=("Microsoft YaHei UI", 11),
         ).pack(side=tk.LEFT)
+
+        ctk.CTkButton(
+            btn_bar, text="↓ 最新", width=76, height=28, corner_radius=8,
+            command=self.scroll_log_to_bottom, fg_color=C["tab_bg"],
+            hover_color=C["card_border"], text_color=C["text_primary"],
+            font=("Microsoft YaHei UI", 11),
+        ).pack(side=tk.RIGHT)
 
         self.set_server_status(getattr(self, "_server_status_text", "未运行"))
         self.update_gpu_info()
