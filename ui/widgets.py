@@ -174,15 +174,12 @@ class UIWidgetMixin:
             text_color=C["text_primary"], font=("Consolas", 11),
         ).pack(fill=tk.X, padx=6, pady=(2, 6))
 
-    # ---- 滚动容器（高级参数 Tab 内部使用）----
+    # ---- 参数容器（高级参数 Tab 内部使用）----
+    # 注：原使用 CTkScrollableFrame，但每个实例都会 bind_all 注册全局
+    # MouseWheel/Shift 事件并绑定 <Configure> 触发 bbox("all")，7个实例
+    # 累积导致窗口拖动严重卡顿。内容在 minsize(1100,700) 内无需滚动。
     def make_scroll_frame(self, parent):
-        C = self.COLORS
-        frame = ctk.CTkScrollableFrame(
-            parent, fg_color="transparent",
-            scrollbar_fg_color=C["tab_bg"],
-            scrollbar_button_color=C["card_border"],
-            scrollbar_button_hover_color=C["text_hint"],
-        )
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
         frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
         # 3列：标签 | 输入 | 按钮（可选）
         frame.grid_columnconfigure(0, weight=0, minsize=140)

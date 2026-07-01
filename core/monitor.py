@@ -383,6 +383,7 @@ class MonitorMixin:
     # ============== 侧边栏 UI 构建 ==============
     def build_monitor_sidebar(self, parent):
         C = self.COLORS
+        parent.grid_rowconfigure(2, weight=1)
 
         # ---- 硬件监控卡片 ----
         hw = self.card(parent, "🖥 硬件监控")
@@ -434,7 +435,8 @@ class MonitorMixin:
 
         # ---- 异常捕获卡片 ----
         ex = self.card(parent, "⚠ 异常捕获")
-        ex.grid(row=2, column=0, sticky="ew", pady=6)
+        ex.grid(row=2, column=0, sticky="nsew", pady=6)
+        ex.grid_rowconfigure(3, weight=1)
         ex_body = ctk.CTkFrame(ex, fg_color="transparent")
         ex_body.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 4))
         ex_body.grid_columnconfigure(1, weight=1)
@@ -452,13 +454,14 @@ class MonitorMixin:
         )
         self.ex_count_lbl.grid(row=0, column=1, sticky="w", padx=(4, 2))
 
-        self.ex_text = ctk.CTkTextbox(
-            ex, height=170, wrap=tk.WORD,
+        self.ex_text = tk.Text(
+            ex, height=8, wrap=tk.WORD,
             font=("Consolas", 10),
-            fg_color=C["dark_bg"], text_color=C["dark_text"],
-            corner_radius=8,
+            bg=C["dark_bg"], fg=C["dark_text"],
+            relief=tk.FLAT, borderwidth=0, padx=8, pady=8,
+            insertbackground=C["dark_text"],
         )
-        self.ex_text.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 6))
+        self.ex_text.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 6))
         self.ex_text.configure(state=tk.DISABLED)
 
         btns = ctk.CTkFrame(ex, fg_color="transparent")

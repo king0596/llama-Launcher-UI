@@ -1,5 +1,4 @@
 import tkinter as tk
-import queue
 
 try:
     import customtkinter as ctk
@@ -21,7 +20,10 @@ class ViewMixin:
         self.root.geometry(self.config.get("window_geometry", "1280x820"))
         self.root.minsize(1100, 700)
         C = self.COLORS
-        self.root.configure(fg_color=C["bg"])
+        try:
+            self.root.configure(fg_color=C["bg"])
+        except tk.TclError:
+            self.root.configure(bg=C["bg"])
 
         shell = ctk.CTkFrame(self.root, fg_color=C["bg"], corner_radius=0)
         shell.pack(fill=tk.BOTH, expand=True)
@@ -42,13 +44,13 @@ class ViewMixin:
         self.config_view.grid_columnconfigure(1, weight=2, minsize=300)
         self.config_view.grid_rowconfigure(0, weight=1)
 
-        # ---- 运行视图（单列）----
+        # ---- 运行视图（懒加载，避免启动时创建大量监控/日志控件）----
         self.runtime_view = ctk.CTkFrame(content, fg_color="transparent")
         self.runtime_view.grid_columnconfigure(0, weight=1)
         self.runtime_view.grid_rowconfigure(1, weight=1)
+        self._runtime_view_built = False
 
         self.build_config_view(self.config_view)
-        self.build_runtime_view(self.runtime_view)
         self.show_config_view()
 
     # ---- 工具栏 ----
@@ -127,6 +129,11 @@ class ViewMixin:
             self.mode_hint_label.configure(text="配置模式：调整参数后启动服务")
 
     def show_runtime_view(self):
+        if not getattr(self, "_runtime_view_built", False):
+            self.build_runtime_view(self.runtime_view)
+            self._runtime_view_built = True
+            if hasattr(self, "update_command_preview"):
+                self.update_command_preview()
         self.config_view.grid_remove()
         self.runtime_view.grid(row=0, column=0, sticky="nsew")
         if hasattr(self, "mode_hint_label"):
@@ -135,8 +142,8 @@ class ViewMixin:
 
     def build_config_view(self, parent):
         C = self.COLORS
-        # 左侧边栏（滚动）
-        sidebar = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        # 左侧边栏（无需滚动，内容在 minsize 高度内放得下）
+        sidebar = ctk.CTkFrame(parent, fg_color="transparent")
         sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         sidebar.grid_columnconfigure(0, weight=1)
 
@@ -157,14 +164,10 @@ class ViewMixin:
         parent.grid_columnconfigure(1, weight=3, minsize=400)
         parent.grid_rowconfigure(0, weight=1)
 
-        sidebar = ctk.CTkScrollableFrame(
-            parent, fg_color="transparent",
-            scrollbar_fg_color=C["tab_bg"],
-            scrollbar_button_color=C["card_border"],
-            scrollbar_button_hover_color=C["text_hint"],
-        )
+        sidebar = ctk.CTkFrame(parent, fg_color="transparent")
         sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
         sidebar.grid_columnconfigure(0, weight=1)
+        sidebar.grid_rowconfigure(2, weight=1)
 
         main = ctk.CTkFrame(parent, fg_color="transparent")
         main.grid(row=0, column=1, sticky="nsew")
@@ -204,11 +207,12 @@ class ViewMixin:
         preview.grid_columnconfigure(0, weight=1)
         preview.grid_rowconfigure(1, weight=1)
 
-        self.config_command_preview_text = ctk.CTkTextbox(
-            preview, height=140, wrap=tk.WORD,
+        self.config_command_preview_text = tk.Text(
+            preview, height=7, wrap=tk.WORD,
             font=("Consolas", 10),
-            fg_color=C["dark_bg"], text_color=C["dark_text"],
-            corner_radius=8,
+            bg=C["dark_bg"], fg=C["dark_text"],
+            relief=tk.FLAT, borderwidth=0, padx=8, pady=8,
+            insertbackground=C["dark_text"],
         )
         self.config_command_preview_text.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
         self.config_command_preview_text.configure(state=tk.DISABLED)
@@ -228,6 +232,7 @@ class ViewMixin:
 
         tabs = ctk.CTkTabview(
             panel,
+            height=520,
             fg_color=C["card"], border_width=1, border_color=C["card_border"],
             segmented_button_fg_color=C["tab_bg"],
             segmented_button_selected_color=C["primary"],
@@ -236,8 +241,11 @@ class ViewMixin:
         for name in ["采样", "GPU / MoE", "投机解码", "服务与工具", "自定义"]:
             tabs.add(name)
             tabs.tab(name).grid_columnconfigure(0, weight=1)
+            tabs.tab(name).grid_rowconfigure(0, weight=1)
 
         tabs.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        tabs.grid_propagate(False)
+        self.advanced_tabs = tabs
         self.fill_sampling_tab(tabs.tab("采样"))
         self.fill_gpu_tab(tabs.tab("GPU / MoE"))
         self.fill_spec_tab(tabs.tab("投机解码"))
@@ -299,24 +307,40 @@ class ViewMixin:
         self.logs_card = logs
         logs.grid(row=1, column=0, sticky="nsew")
         logs.grid_columnconfigure(0, weight=1)
-        logs.grid_rowconfigure(2, weight=1)
+        logs.grid_rowconfigure(4, weight=1)
 
-        self.command_preview_text = ctk.CTkTextbox(
-            logs, height=80, wrap=tk.WORD, font=("Consolas", 10),
-            fg_color=C["dark_bg"], text_color=C["dark_text"], corner_radius=8,
+        ctk.CTkLabel(
+            logs,
+            text="启动命令",
+            text_color=C["text_hint"],
+            font=("Microsoft YaHei UI", 11),
+        ).grid(row=1, column=0, sticky="w", padx=12, pady=(0, 4))
+        self.command_preview_text = tk.Text(
+            logs, height=4, wrap=tk.WORD, font=("Consolas", 10),
+            bg=C["dark_bg"], fg=C["dark_text"],
+            relief=tk.FLAT, borderwidth=0, padx=8, pady=8,
+            insertbackground=C["dark_text"],
         )
-        self.command_preview_text.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
+        self.command_preview_text.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 6))
         self.command_preview_text.configure(state=tk.DISABLED)
 
-        self.log_text = ctk.CTkTextbox(
+        ctk.CTkLabel(
+            logs,
+            text="运行日志",
+            text_color=C["text_hint"],
+            font=("Microsoft YaHei UI", 11),
+        ).grid(row=3, column=0, sticky="w", padx=12, pady=(0, 4))
+        self.log_text = tk.Text(
             logs, wrap=tk.WORD, font=("Consolas", 11),
-            fg_color=C["dark_bg"], text_color=C["success"], corner_radius=8,
+            bg=C["dark_bg"], fg=C["success"],
+            relief=tk.FLAT, borderwidth=0, padx=8, pady=8,
+            insertbackground=C["success"],
         )
-        self.log_text.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 6))
+        self.log_text.grid(row=4, column=0, sticky="nsew", padx=12, pady=(0, 6))
         self.log_text.configure(state=tk.DISABLED)
 
         btn_bar = ctk.CTkFrame(logs, fg_color="transparent")
-        btn_bar.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        btn_bar.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
 
         ctk.CTkButton(
             btn_bar, text="🗑 清空日志", width=90, height=28, corner_radius=8,
@@ -324,12 +348,7 @@ class ViewMixin:
             text_color=C["text_primary"], font=("Microsoft YaHei UI", 11),
         ).pack(side=tk.LEFT)
 
-        self.log_queue = queue.Queue()
-        self.log_thread = None
-        self.running = False
-        self.max_log_lines = 999999
-        self.log_lines = []
-        self.set_server_status("未运行")
+        self.set_server_status(getattr(self, "_server_status_text", "未运行"))
         self.update_gpu_info()
 
     def add_summary_row(self, parent, row, label, var):

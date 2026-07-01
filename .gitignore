@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.log
+
+# LLM 工具输出目录
+workspace/
 
 # Virtual environment
 .venv

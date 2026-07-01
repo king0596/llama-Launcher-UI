@@ -11,11 +11,14 @@ if not exist ".venv\Scripts\python.exe" (
     )
 )
 
-".venv\Scripts\python.exe" -m pip install -r requirements.txt
+".venv\Scripts\python.exe" -c "import customtkinter, psutil, pynvml" >nul 2>nul
 if errorlevel 1 (
-    echo Failed to install dependencies in .venv.
-    pause
-    exit /b 1
+    ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+    if errorlevel 1 (
+        echo Failed to install dependencies in .venv.
+        pause
+        exit /b 1
+    )
 )
 
 start /min "" ".venv\Scripts\pythonw.exe" "llama_launcher_backup.py"

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import os
+import queue
 
 try:
     import customtkinter as ctk
@@ -20,6 +21,39 @@ from core.monitor import MonitorMixin
 args = parse_args()
 
 
+def patch_customtkinter_runtime():
+    """Disable CTk polling paths that make Tk window dragging stutter on Windows."""
+    if ctk is None:
+        return
+
+    # Use a fixed theme mode so AppearanceModeTracker does not need system polling.
+    ctk.set_appearance_mode("light")
+    ctk.AppearanceModeTracker.update_loop_running = True
+
+    # Keep CTk's initial scaling values, but prevent the 100ms DPI watcher from
+    # competing with the Windows move/resize message loop.
+    ctk.ScalingTracker.update_loop_running = True
+    ctk.CTk._deactivate_windows_window_header_manipulation = True
+    ctk.CTkToplevel._deactivate_windows_window_header_manipulation = True
+
+    # customtkinter 6.0.0 accidentally leaves this flag False in both methods.
+    # When DPI callbacks run, geometry updates are not actually blocked.
+    def block_update_dimensions_event(self):
+        self._block_update_dimensions_event = True
+
+    def unblock_update_dimensions_event(self):
+        self._block_update_dimensions_event = False
+
+    ctk.CTk.block_update_dimensions_event = block_update_dimensions_event
+    ctk.CTk.unblock_update_dimensions_event = unblock_update_dimensions_event
+    ctk.CTkToplevel.block_update_dimensions_event = block_update_dimensions_event
+    ctk.CTkToplevel.unblock_update_dimensions_event = unblock_update_dimensions_event
+
+    # Several CTkTextbox widgets otherwise poll scrollbar state every 200ms.
+    # A slower check keeps auto-scrollbars while reducing idle UI wakeups.
+    ctk.CTkTextbox._scrollbar_update_time = 1000
+
+
 class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigMixin, MonitorMixin):
     """Llama Server 启动器主类，通过 mixin 组合各功能模块。"""
 
@@ -33,6 +67,14 @@ class LlamaLauncher(UIWidgetMixin, ViewMixin, ServerMixin, CommandMixin, ConfigM
         self.process = None
         self.openclaw_process = None
         self.command_update_after_id = None
+        self.gpu_update_after_id = None
+        self.log_queue = queue.Queue()
+        self.log_thread = None
+        self.running = False
+        self.max_log_lines = 5000
+        self.log_lines = []
+        self._last_output_was_idle = False
+        self._server_status_text = "未运行"
         self._cli_args = args
         self.config_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "config.toml"
@@ -129,7 +171,9 @@ def main():
         root.destroy()
         return
 
-    root = ctk.CTk()
+    patch_customtkinter_runtime()
+
+    root = tk.Tk()
     app = LlamaLauncher(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
